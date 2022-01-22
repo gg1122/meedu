@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Api\V2;
@@ -17,6 +14,19 @@ use App\Services\Member\Interfaces\UserServiceInterface;
 
 class PasswordController extends BaseController
 {
+
+    /**
+     * @api {post} /api/v2/password/reset 重置密码
+     * @apiGroup Auth
+     * @apiVersion v2.0.0
+     *
+     * @apiParam {String} mobile 手机号
+     * @apiParam {String} mobile_code 短信验证码
+     * @apiParam {String} password 密码
+     *
+     * @apiSuccess {Number} code 0成功,非0失败
+     * @apiSuccess {Object} data 数据
+     */
     public function reset(PasswordChangeRequest $request, UserServiceInterface $userService)
     {
         $this->mobileCodeCheck();
@@ -29,7 +39,7 @@ class PasswordController extends BaseController
 
         $user = $userService->findMobile($mobile);
         if (!$user) {
-            return $this->error(__('mobile not exists'));
+            return $this->error(__('手机号不存在'));
         }
 
         $userService->changePassword($user['id'], $password);

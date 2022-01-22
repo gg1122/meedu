@@ -3,16 +3,12 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Services\Course\Services;
 
 use Carbon\Carbon;
-use App\Constant\FrontendConstant;
 use App\Services\Course\Models\Course;
 use App\Services\Course\Models\CourseAttach;
 use App\Services\Base\Services\ConfigService;
@@ -42,11 +38,12 @@ class CourseService implements CourseServiceInterface
      */
     public function titleSearch(string $keyword, int $limit): array
     {
-        return Course::show()
-            ->published()
+        return Course::query()
+            ->where('is_show', 1)
+            ->where('published_at', '<=', Carbon::now())
             ->with(['category'])
             ->withCount(['videos' => function ($query) {
-                $query->show()->published();
+                $query->where('is_show', 1)->where('published_at', '<=', Carbon::now());
             }])
             ->where('title', 'like', '%' . $keyword . '%')
             ->orderByDesc('published_at')
@@ -64,11 +61,11 @@ class CourseService implements CourseServiceInterface
     public function simplePage(int $page, int $pageSize, int $categoryId = 0, string $scene = ''): array
     {
         $query = Course::query()
-            ->with(['category'])
-            ->show()
-            ->published()
+            ->with(['category:id,name'])
+            ->where('is_show', 1)
+            ->where('published_at', '<=', Carbon::now())
             ->withCount(['videos' => function ($query) {
-                $query->show()->published();
+                $query->where('is_show', 1)->where('published_at', '<=', Carbon::now());
             }])
             ->when($categoryId, function ($query) use ($categoryId) {
                 $query->where('category_id', $categoryId);
@@ -76,13 +73,15 @@ class CourseService implements CourseServiceInterface
             ->when($scene === 'free', function ($query) {
                 $query->where('is_free', 1);
             });
-        if (!$scene) {
-            $query->orderByDesc('published_at');
-        } elseif ($scene == 'sub') {
+
+        if ($scene === 'sub') {
             $query->orderByDesc('user_count');
-        } elseif ($scene == 'recom') {
-            $query->whereIsRec(FrontendConstant::YES)->orderByDesc('id');
+        } elseif ($scene === 'recom') {
+            $query->where('is_rec', 1)->orderByDesc('id');
+        } else {
+            $query->orderByDesc('published_at');
         }
+
         $total = $query->count();
         $list = $query->forPage($page, $pageSize)->get()->toArray();
         $list = $this->addLatestVideos($list);
@@ -97,7 +96,7 @@ class CourseService implements CourseServiceInterface
      */
     public function find(int $id): array
     {
-        $course = Course::show()->published()->findOrFail($id);
+        $course = Course::query()->where('published_at', '<=', Carbon::now())->findOrFail($id);
 
         return $course->toArray();
     }
@@ -109,7 +108,11 @@ class CourseService implements CourseServiceInterface
      */
     public function chapters(int $courseId): array
     {
-        return CourseChapter::whereCourseId($courseId)->orderBy('sort')->get()->toArray();
+        return CourseChapter::query()
+            ->where('course_id', $courseId)
+            ->orderBy('sort')
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -119,12 +122,13 @@ class CourseService implements CourseServiceInterface
      */
     public function getLatestCourses(int $limit): array
     {
-        $courses = Course::withCount(['videos' => function ($query) {
-            $query->show()->published();
-        }])
-            ->with(['category'])
-            ->show()
-            ->published()
+        $courses = Course::query()
+            ->withCount(['videos' => function ($query) {
+                $query->where('is_show', 1)->where('published_at', '<=', Carbon::now());
+            }])
+            ->with(['category:id,name'])
+            ->where('is_show', 1)
+            ->where('published_at', '<=', Carbon::now())
             ->orderByDesc('published_at')
             ->limit($limit)
             ->get()
@@ -138,13 +142,14 @@ class CourseService implements CourseServiceInterface
      */
     public function getRecCourses(int $limit): array
     {
-        $courses = Course::withCount(['videos' => function ($query) {
-            $query->show()->published();
-        }])
-            ->with(['category'])
-            ->show()
-            ->published()
-            ->recommend()
+        $courses = Course::query()
+            ->withCount(['videos' => function ($query) {
+                $query->where('is_show', 1)->where('published_at', '<=', Carbon::now());
+            }])
+            ->with(['category:id,name'])
+            ->where('is_show', 1)
+            ->where('published_at', '<=', Carbon::now())
+            ->where('is_rec', 1)
             ->orderByDesc('published_at')
             ->limit($limit)
             ->get()
@@ -159,10 +164,13 @@ class CourseService implements CourseServiceInterface
      */
     public function getList(array $ids): array
     {
-        return Course::with(['category'])
+        return Course::query()
+            ->with(['category:id,name'])
             ->withCount(['videos'])
-            ->show()->published()
-            ->whereIn('id', $ids)->orderByDesc('published_at')->get()->toArray();
+            ->whereIn('id', $ids)
+            ->orderByDesc('published_at')
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -203,6 +211,14 @@ class CourseService implements CourseServiceInterface
             'user_id' => $userId,
             'course_id' => $courseId,
         ]);
+    }
+
+    public function isExistsCourseUserRecord(int $userId, int $courseId): bool
+    {
+        return CourseUserRecord::query()
+            ->where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->exists();
     }
 
     /**
@@ -248,7 +264,10 @@ class CourseService implements CourseServiceInterface
      */
     public function userLearningCoursesPaginate(int $userId, int $page, int $pageSize): array
     {
-        $query = CourseUserRecord::whereUserId($userId)->orderByDesc('id')->forPage($page, $pageSize);
+        $query = CourseUserRecord::query()
+            ->where('user_id', $userId)
+            ->orderByDesc('id')
+            ->forPage($page, $pageSize);
 
         $total = $query->count();
         $list = $query->get()->toArray();
@@ -263,7 +282,11 @@ class CourseService implements CourseServiceInterface
      */
     public function getCourseAttach(int $courseId): array
     {
-        return CourseAttach::query()->select(['name', 'id', 'extension', 'size', 'download_times'])->where('course_id', $courseId)->get()->toArray();
+        return CourseAttach::query()
+            ->select(['name', 'id', 'extension', 'size', 'download_times'])
+            ->where('course_id', $courseId)
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -291,5 +314,21 @@ class CourseService implements CourseServiceInterface
     public function userCountInc(int $id, int $num): void
     {
         Course::query()->where('id', $id)->increment('user_count', $num);
+    }
+
+    /**
+     * @param array $ids
+     * @param array $fields
+     * @param array $with
+     * @return array
+     */
+    public function getByIds(array $ids, array $fields, array $with = []): array
+    {
+        return Course::query()
+            ->with($with)
+            ->select($fields)
+            ->whereIn('id', $ids)
+            ->get()
+            ->toArray();
     }
 }

@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Requests\Backend;
@@ -39,8 +36,8 @@ class CourseCategoryRequest extends BaseRequest
     public function messages()
     {
         return [
-            'sort.required' => '请输入排序值',
-            'name.required' => '请输入分类名',
+            'sort.required' => __('请输入排序值'),
+            'name.required' => __('请输入分类名'),
         ];
     }
 

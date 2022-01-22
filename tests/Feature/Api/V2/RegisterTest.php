@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Feature\Api\V2;
@@ -54,7 +51,7 @@ class RegisterTest extends Base
         $password = Str::random(12);
         $mobileCode = Str::random(6);
 
-        factory(User::class)->create(['mobile' => $mobile]);
+        User::factory()->create(['mobile' => $mobile]);
 
         /**
          * @var $cacheService CacheService
@@ -68,6 +65,6 @@ class RegisterTest extends Base
             'mobile_code' => $mobileCode,
             'password' => $password,
         ]);
-        $this->assertResponseError($response, __('mobile.unique'));
+        $this->assertResponseError($response, __('手机号已存在'));
     }
 }

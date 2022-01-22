@@ -18,17 +18,23 @@ if (stripos($uri, '/public/ius') !== false) {
 $step = (int)($_GET['step'] ?? 0);
 $isSubmit = $_POST['submit'] ?? false;
 
+// 已安装的扩展
 $extensions = array_flip(get_loaded_extensions());
+
+// 已禁用的函数
 $disabledFunctions = array_flip(explode(',', ini_get('disable_functions')));
-$storagePath = str_replace('public', 'storage', __DIR__);
-$bootstrapPath = str_replace('public', 'bootstrap', __DIR__);
-$addonsPath = str_replace('public', 'addons', __DIR__);
-$resourcesPath = str_replace('public', 'resources', __DIR__);
+
+// 可写路径
+$storagePath = realpath(__DIR__ . '/../storage');
+$bootstrapPath = realpath(__DIR__ . '/../bootstrap');
+$addonsPath = realpath(__DIR__ . '/../addons');
+
+// 要求
 $requires = [
     [
         'item' => PHP_VERSION,
-        'status' => PHP_VERSION_ID > 70103,
-        'intro' => 'PHP版本>=7.1.3',
+        'status' => version_compare('v7.3.0', PHP_VERSION, '<='),
+        'intro' => 'PHP版本>=7.3.0',
     ],
     [
         'item' => 'ext-Fileinfo',
@@ -86,11 +92,6 @@ $requires = [
         'intro' => '必须可写',
     ],
     [
-        'item' => $resourcesPath,
-        'status' => is_writable($resourcesPath),
-        'intro' => '必须可写',
-    ],
-    [
         'item' => $bootstrapPath,
         'status' => is_writable($bootstrapPath),
         'intro' => '必须可写',
@@ -118,6 +119,16 @@ $requires = [
     [
         'item' => 'putenv()',
         'status' => !isset($disabledFunctions['putenv']),
+        'intro' => '该函数不能被禁用',
+    ],
+    [
+        'item' => 'pcntl_signal()',
+        'status' => !isset($disabledFunctions['pcntl_signal']),
+        'intro' => '该函数不能被禁用',
+    ],
+    [
+        'item' => 'pcntl_alarm()',
+        'status' => !isset($disabledFunctions['pcntl_alarm']),
         'intro' => '该函数不能被禁用',
     ],
 ];
@@ -151,12 +162,7 @@ if ($step === 0) {
                 <a href="https://meedu.vip/" target="_blank"><img src="/images/logo.png" height="40"></a>
             </div>
             <div class="col-12 mb-5 text-center">
-                <h2>MeEdu安装程序</h2>
-            </div>
-            <div class="col-12">
-                <div class="alert alert-info text-center">
-                    <p class="mb-0">MeEdu是基于MIT协议的开源免费在线点播系统，您可以在任何环境中使用它而不必支付费用。</p>
-                </div>
+                <h2>MeEdu 傻瓜安装程序</h2>
             </div>
             <div class="col-12">
                 <table class="table table-hover">
@@ -307,7 +313,7 @@ if ($step === 0) {
                     <div class="form-group">
                         <label>数据库密码</label>
                         <input type="text" name="db_pass" value="<?php echo $dbPass; ?>" class="form-control"
-                               placeholder="为空可不需要填写">
+                               placeholder="为空可不填写">
                     </div>
                     <div class="form-group">
                         <label>数据库</label>

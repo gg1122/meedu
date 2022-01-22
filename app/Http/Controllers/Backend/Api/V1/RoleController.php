@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Backend\Api\V1;
@@ -55,7 +52,7 @@ class RoleController extends BaseController
     public function destroy($id)
     {
         if (User::query()->where('role_id', $id)->exists()) {
-            return $this->error('有用户是该VIP，无法删除');
+            return $this->error(__('当前VIP下存在用户无法删除'));
         }
 
         Role::destroy($id);

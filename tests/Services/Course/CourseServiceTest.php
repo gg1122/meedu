@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Course;
@@ -40,7 +37,7 @@ class CourseServiceTest extends TestCase
     {
         $pageSize = random_int(1, 10);
         $total = random_int(15, 20);
-        factory(Course::class, $total)->create([
+        Course::factory()->count($total)->create([
             'published_at' => Carbon::now()->subDays(1),
             'is_show' => Course::SHOW_YES,
         ]);
@@ -54,12 +51,12 @@ class CourseServiceTest extends TestCase
     {
         $pageSize = random_int(1, 10);
         $total = random_int(15, 20);
-        $category = factory(CourseCategory::class)->create();
-        factory(Course::class, $total)->create([
+        $category = CourseCategory::factory()->create();
+        Course::factory()->count($total)->create([
             'published_at' => Carbon::now()->subDays(1),
             'is_show' => Course::SHOW_YES,
         ]);
-        factory(Course::class, 2)->create([
+        Course::factory()->count(2)->create([
             'category_id' => $category->id,
             'published_at' => Carbon::now()->subDays(1),
             'is_show' => Course::SHOW_YES,
@@ -71,7 +68,7 @@ class CourseServiceTest extends TestCase
 
     public function test_find()
     {
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -85,28 +82,17 @@ class CourseServiceTest extends TestCase
     {
         $this->expectException(ModelNotFoundException::class);
 
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->addDays(1),
         ]);
         $c = $this->courseService->find($course->id);
     }
 
-    public function test_find_with_no_show()
-    {
-        $this->expectException(ModelNotFoundException::class);
-
-        $course = factory(Course::class)->create([
-            'is_show' => Course::SHOW_NO,
-            'published_at' => Carbon::now()->subDays(1),
-        ]);
-        $c = $this->courseService->find($course->id);
-    }
-
     public function test_chapters()
     {
-        $course = factory(Course::class)->create();
-        factory(CourseChapter::class, 10)->create([
+        $course = Course::factory()->create();
+        CourseChapter::factory()->count(10)->create([
             'course_id' => $course->id,
         ]);
 
@@ -119,8 +105,8 @@ class CourseServiceTest extends TestCase
     {
         config(['meedu.system.cache.status' => 1]);
 
-        $course = factory(Course::class)->create();
-        factory(CourseChapter::class, 10)->create([
+        $course = Course::factory()->create();
+        CourseChapter::factory()->count(10)->create([
             'course_id' => $course->id,
         ]);
 
@@ -128,7 +114,7 @@ class CourseServiceTest extends TestCase
         $this->assertNotEmpty($c);
         $this->assertEquals(10, count($c));
 
-        factory(CourseChapter::class, 2)->create([
+        CourseChapter::factory()->count(2)->create([
             'course_id' => $course->id,
         ]);
 
@@ -139,7 +125,7 @@ class CourseServiceTest extends TestCase
 
     public function test_getLatestCourses()
     {
-        factory(Course::class, 5)->create([
+        Course::factory()->count(5)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -151,7 +137,7 @@ class CourseServiceTest extends TestCase
     public function test_getLatestCourses_withCache()
     {
         config(['meedu.system.cache.status' => 1]);
-        factory(Course::class, 5)->create([
+        Course::factory()->count(5)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -159,7 +145,7 @@ class CourseServiceTest extends TestCase
         $this->assertNotEmpty($latestCourses);
         $this->assertEquals(5, count($latestCourses));
 
-        factory(Course::class, 2)->create([
+        Course::factory()->count(2)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -171,7 +157,7 @@ class CourseServiceTest extends TestCase
 
     public function test_getList()
     {
-        $courses = factory(Course::class, 5)->create([
+        $courses = Course::factory()->count(5)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -186,12 +172,12 @@ class CourseServiceTest extends TestCase
 
     public function test_titleSearch()
     {
-        factory(Course::class, 3)->create([
+        Course::factory()->count(3)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'title' => '我是哈哈哈PHP',
         ]);
-        factory(Course::class, 4)->create([
+        Course::factory()->count(4)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'title' => 'javascript',
@@ -203,12 +189,12 @@ class CourseServiceTest extends TestCase
 
     public function test_getRecCourses()
     {
-        factory(Course::class, 3)->create([
+        Course::factory()->count(3)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'is_rec' => Course::REC_YES,
         ]);
-        factory(Course::class, 4)->create([
+        Course::factory()->count(4)->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'is_rec' => Course::REC_NO,
@@ -219,8 +205,8 @@ class CourseServiceTest extends TestCase
 
     public function test_createCourseUserRecord()
     {
-        $user = factory(User::class)->create();
-        $course = factory(Course::class)->create();
+        $user = User::factory()->create();
+        $course = Course::factory()->create();
         $this->courseService->createCourseUserRecord($user->id, $course->id);
         $this->assertTrue(CourseUserRecord::query()->where('user_id', $user->id)->where('course_id', $course->id)->exists());
         $course->refresh();

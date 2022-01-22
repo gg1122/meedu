@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Course;
@@ -31,7 +28,7 @@ class CourseCategoryServiceTest extends TestCase
 
     public function test_all()
     {
-        factory(CourseCategory::class, 10)->create();
+        CourseCategory::factory()->count(10)->create();
         $res = $this->service->all();
         $this->assertEquals(10, count($res));
     }

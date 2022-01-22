@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Feature\BackendApi;
@@ -18,7 +15,7 @@ class LoginTest extends Base
 {
     public function test_with_correct_password()
     {
-        $administrator = factory(Administrator::class)->create([
+        $administrator = Administrator::factory()->create([
             'password' => Hash::make('123123'),
         ]);
         $response = $this->postJson(self::API_V1_PREFIX . '/login', [
@@ -30,7 +27,7 @@ class LoginTest extends Base
 
     public function test_with_uncorrect_password()
     {
-        $administrator = factory(Administrator::class)->create([
+        $administrator = Administrator::factory()->create([
             'password' => Hash::make('123123'),
         ]);
         $response = $this->postJson(self::API_V1_PREFIX . '/login', [
@@ -42,7 +39,7 @@ class LoginTest extends Base
 
     public function test_with_uncorrect_username()
     {
-        $administrator = factory(Administrator::class)->create([
+        $administrator = Administrator::factory()->create([
             'email' => '111@meedu.vip',
             'password' => Hash::make('123123'),
         ]);

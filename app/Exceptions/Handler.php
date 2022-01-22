@@ -3,19 +3,16 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Exceptions;
 
-use Exception;
 use Illuminate\Support\Str;
 use App\Constant\ApiV2Constant;
 use App\Constant\BackendApiConstant;
 use Illuminate\Auth\AuthenticationException;
+use App\Exceptions\Backend\ValidateException;
 use App\Http\Controllers\Api\V2\Traits\ResponseTrait;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 
@@ -31,6 +28,7 @@ class Handler extends ExceptionHandler
     protected $dontReport = [
         ApiV2Exception::class,
         ServiceException::class,
+        ValidateException::class,
     ];
 
     /**
@@ -43,22 +41,7 @@ class Handler extends ExceptionHandler
         'password_confirmation',
     ];
 
-    /**
-     * @param Exception $exception
-     * @return mixed|void
-     * @throws Exception
-     */
-    public function report(Exception $exception)
-    {
-        parent::report($exception);
-    }
-
-    /**
-     * @param \Illuminate\Http\Request $request
-     * @param Exception $exception
-     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response|\Symfony\Component\HttpFoundation\Response
-     */
-    public function render($request, Exception $exception)
+    public function render($request, \Throwable $exception)
     {
         if (!($exception instanceof ServiceException) && $request->wantsJson()) {
             // 后台的异常错误
@@ -75,15 +58,9 @@ class Handler extends ExceptionHandler
                 if (Str::contains($request->getUri(), '/api/v2')) {
                     $code = ApiV2Constant::ERROR_CODE;
                     $exception instanceof AuthenticationException && $code = ApiV2Constant::ERROR_NO_AUTH_CODE;
-                    return $this->error(__('error'), $code);
+                    return $this->error(__('错误'), $code);
                 }
             }
-        }
-
-        // 登录重定向
-        if ($exception instanceof AuthenticationException && !$request->wantsJson()) {
-            $currentUrl = urlencode($request->fullUrl());
-            return redirect(route('login') . '?redirect=' . $currentUrl);
         }
 
         return parent::render($request, $exception);

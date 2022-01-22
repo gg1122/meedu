@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Requests\Backend;
@@ -31,7 +28,6 @@ class LinkRequest extends BaseRequest
     public function rules()
     {
         return [
-            'sort' => 'required',
             'name' => 'required',
             'url' => 'required',
         ];
@@ -40,16 +36,15 @@ class LinkRequest extends BaseRequest
     public function messages()
     {
         return [
-            'sort.required' => '请输入排序数值',
-            'name.required' => '请输入链接名',
-            'url.required' => '请输入链接地址',
+            'name.required' => __('请输入友情链接名'),
+            'url.required' => __('请输入友情链接地址'),
         ];
     }
 
     public function filldata()
     {
         return [
-            'sort' => $this->input('sort'),
+            'sort' => (int)$this->input('sort', 0),
             'name' => $this->input('name'),
             'url' => $this->input('url'),
         ];

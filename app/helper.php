@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 if (!function_exists('flash')) {
@@ -71,24 +68,6 @@ if (!function_exists('exception_record')) {
     }
 }
 
-if (!function_exists('markdown_to_html')) {
-    /**
-     * markdown转换为html.
-     *
-     * @param $content
-     *
-     * @return string
-     */
-    function markdown_to_html($content)
-    {
-        $content = (new Parsedown())->setBreaksEnabled(true)->parse($content);
-        $content = clean($content);
-        $content = preg_replace('#<table>#', '<table class="table table-hover table-bordered">', $content);
-
-        return $content;
-    }
-}
-
 if (!function_exists('aliyun_play_auth')) {
     /**
      * 获取阿里云视频的播放Auth
@@ -102,14 +81,23 @@ if (!function_exists('aliyun_play_auth')) {
         // 试看参数封装
         $playConfig = [];
         ($isTry && $video['free_seconds'] > 0) && $playConfig['PreviewTime'] = $video['free_seconds'];
+
+        /**
+         * @var \App\Services\Base\Services\ConfigService $configService
+         */
+        $configService = app()->make(\App\Services\Base\Interfaces\ConfigServiceInterface::class);
+
         try {
             aliyun_sdk_client();
 
             $query = ['VideoId' => $video['aliyun_video_id']];
             $playConfig && $query['PlayConfig'] = json_encode($playConfig);
 
+            $config = $configService->getAliyunVodConfig();
+
             $result = \AlibabaCloud\Client\AlibabaCloud::rpc()
                 ->product('Vod')
+                ->host($config['host'])
                 ->version('2017-03-21')
                 ->action('GetVideoPlayAuth')
                 ->options([
@@ -135,6 +123,12 @@ if (!function_exists('aliyun_play_url')) {
      */
     function aliyun_play_url(array $video, $isTry = false)
     {
+        /**
+         * @var \App\Services\Base\Services\ConfigService $configService
+         */
+        $configService = app()->make(\App\Services\Base\Interfaces\ConfigServiceInterface::class);
+        $config = $configService->getAliyunVodConfig();
+
         try {
             aliyun_sdk_client();
 
@@ -145,6 +139,7 @@ if (!function_exists('aliyun_play_url')) {
             $playConfig && $query['PlayConfig'] = json_encode($playConfig);
             $result = \AlibabaCloud\Client\AlibabaCloud::rpc()
                 ->product('Vod')
+                ->host($config['host'])
                 ->version('2017-03-21')
                 ->action('GetPlayInfo')
                 ->options([
@@ -199,8 +194,6 @@ if (!function_exists('v')) {
      */
     function v($viewName, $params = [])
     {
-        $namespace = config('meedu.system.theme.use', 'default');
-        $viewName = preg_match('/::/', $viewName) ? $viewName : $namespace . '::' . $viewName;
         is_h5() && $viewName = str_replace('frontend', 'h5', $viewName);
 
         return view($viewName, $params);
@@ -275,7 +268,7 @@ if (!function_exists('get_payment_scene')) {
     function get_payment_scene()
     {
         if (is_wechat()) {
-            return \App\Constant\FrontendConstant::PAYMENT_SCENE_WECHAT_OPEN;
+            return \App\Constant\FrontendConstant::PAYMENT_SCENE_WECHAT;
         }
         $scene = is_h5() ? \App\Constant\FrontendConstant::PAYMENT_SCENE_H5 : \App\Constant\FrontendConstant::PAYMENT_SCENE_PC;
         return $scene;
@@ -302,21 +295,6 @@ if (!function_exists('get_payments')) {
         });
 
         return $payments;
-    }
-}
-
-if (!function_exists('get_at_users')) {
-    /**
-     * @param string $content
-     * @return array
-     */
-    function get_at_users(string $content): array
-    {
-        preg_match_all('/@(.*?)\s{1}/', $content, $result);
-        if (count($result[1] ?? []) === 0) {
-            return [];
-        }
-        return $result[1];
     }
 }
 
@@ -405,9 +383,6 @@ if (!function_exists('get_tencent_play_url')) {
             $req = new \TencentCloud\Vod\V20180717\Models\DescribeMediaInfosRequest();
             $req->FileIds[] = $vid;
             $req->SubAppId = (int)$config['app_id'];
-            /**
-             * @var $response \TencentCloud\Vod\V20180717\Models\DescribeMediaInfosResponse
-             */
             $response = $client->DescribeMediaInfos($req);
             if (!$response->MediaInfoSet) {
                 // 无法获取url地址
@@ -416,13 +391,18 @@ if (!function_exists('get_tencent_play_url')) {
             if ($response->MediaInfoSet[0]->TranscodeInfo) {
                 // 配置了转码信息
                 $urls = [];
+                $supportFormat = $configService->getTencentVodTranscodeFormat();
                 foreach ($response->MediaInfoSet[0]->TranscodeInfo->TranscodeSet as $item) {
                     $url = $item->Url;
-                    $format = pathinfo($url, PATHINFO_EXTENSION);
+                    $format = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+                    if ($supportFormat && !in_array($format, $supportFormat)) {
+                        // 限定转码格式，只能使用一种
+                        continue;
+                    }
                     $urls[] = [
                         'url' => $url,
                         'format' => $format,
-                        'Duration' => (int)$item->Duration,
+                        'duration' => (int)$item->Duration,
                         'name' => $item->Height,
                     ];
                 }
@@ -432,12 +412,13 @@ if (!function_exists('get_tencent_play_url')) {
              * @var $mediaBasicInfo \TencentCloud\Vod\V20180717\Models\MediaBasicInfo
              */
             $mediaBasicInfo = $response->MediaInfoSet[0]->BasicInfo;
+            $metaData = $response->MediaInfoSet[0]->MetaData;
             return [
                 [
                     'format' => $mediaBasicInfo->Type,
                     'url' => $mediaBasicInfo->MediaUrl,
-                    'duration' => 0,
-                    'name' => '',
+                    'duration' => (int)$metaData->Duration,
+                    'name' => $metaData->Height,
                 ]
             ];
         } catch (Exception $exception) {
@@ -460,8 +441,10 @@ if (!function_exists('get_play_url')) {
     {
         $playUrl = [];
         if ($video['aliyun_video_id']) {
+            // 阿里云
             $playUrl = aliyun_play_url($video, $isTry);
         } elseif ($video['tencent_video_id']) {
+            // 腾讯云
             $playUrl = get_tencent_play_url($video['tencent_video_id']);
             // 是否开启了播放key
             if ($key = config('meedu.system.player.tencent_play_key')) {
@@ -478,12 +461,6 @@ if (!function_exists('get_play_url')) {
                 'name' => '',
                 'duration' => 0,
             ];
-        }
-
-        if (count($playUrl) > 1) {
-            // 可播放数量大于1，说明配置了转码，那么需要删除第一条数据
-            // 因为该条数据是原始的视频内容，不安全，未加密等等
-            unset($playUrl[0]);
         }
 
         sort($playUrl);
@@ -528,7 +505,7 @@ if (!function_exists('get_platform')) {
      */
     function get_platform()
     {
-        // 如果默认读取不到，则将平台统一设置为 ‘APP’
+        // 如果默认读取不到，则将平台统一设置为APP
         $platform = strtoupper(request()->header('meedu-platform', \App\Constant\FrontendConstant::LOGIN_PLATFORM_APP));
         $platforms = [
             \App\Constant\FrontendConstant::LOGIN_PLATFORM_APP,
@@ -592,8 +569,58 @@ if (!function_exists('save_image')) {
         $disk = $configService->getImageStorageDisk();
         $path = $file->store($configService->getImageStoragePath(), compact('disk'));
         $url = url(\Illuminate\Support\Facades\Storage::disk($disk)->url($path));
-        $data = compact('path', 'url', 'disk');
+        $name = mb_substr(strip_tags($file->getClientOriginalName()), 0, 254);
+        $data = compact('path', 'url', 'disk', 'name');
         $data['encryptData'] = encrypt(json_encode($data));
         return $data;
+    }
+}
+
+if (!function_exists('url_append_query')) {
+    function url_append_query(string $url, array $data): string
+    {
+        $query = http_build_query($data);
+        if (\Illuminate\Support\Str::contains($url, '?')) {
+            $url .= '&' . $query;
+        } else {
+            $url .= '?' . $query;
+        }
+
+        return $url;
+    }
+}
+
+if (!function_exists('wechat_jssdk')) {
+    /**
+     * @param array $apiList
+     *
+     * @return array
+     *
+     * @throws \EasyWeChat\Kernel\Exceptions\InvalidArgumentException
+     * @throws \EasyWeChat\Kernel\Exceptions\InvalidConfigException
+     * @throws \EasyWeChat\Kernel\Exceptions\RuntimeException
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     * @throws \Psr\SimpleCache\InvalidArgumentException
+     */
+    function wechat_jssdk(array $apiList): array
+    {
+        $app = \App\Meedu\Wechat::getInstance();
+        return $app->jssdk->buildConfig($apiList, is_dev(), false, false);
+    }
+}
+
+if (!function_exists('wechat_qrcode_image')) {
+    function wechat_qrcode_image(string $code): string
+    {
+        $result = \App\Meedu\Wechat::getInstance()->qrcode->temporary($code, 3600);
+        $url = $result['url'] ?? '';
+        return 'data:image/png;base64, ' . base64_encode(\QrCode::format('png')->size(300)->generate($url));
+    }
+}
+
+if (!function_exists('view_hook')) {
+    function view_hook(string $position)
+    {
+        return \App\Meedu\Hooks\HookRun::run($position, new \App\Meedu\Hooks\HookParams([]));
     }
 }

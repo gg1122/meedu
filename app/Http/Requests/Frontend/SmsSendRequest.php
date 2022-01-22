@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Requests\Frontend;
@@ -27,10 +24,10 @@ class SmsSendRequest extends BaseRequest
     public function messages()
     {
         return [
-            'captcha.required' => __('captcha.required'),
-            'captcha.captcha' => __('captcha.captcha'),
-            'mobile.required' => __('mobile.required'),
-            'method.*' => __('method.*'),
+            'captcha.required' => __('请输入图形验证码'),
+            'captcha.captcha' => __('图形验证码错误'),
+            'mobile.required' => __('请输入手机号'),
+            'method.*' => __('参数错误'),
         ];
     }
 

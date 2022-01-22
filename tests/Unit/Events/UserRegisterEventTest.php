@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Unit\Events;
@@ -23,7 +20,7 @@ class UserRegisterEventTest extends TestCase
         config(['meedu.member.register.vip.role_id' => 1]);
         config(['meedu.member.register.vip.days' => 2]);
 
-        $user = factory(User::class)->create(['role_id' => 0]);
+        $user = User::factory()->create(['role_id' => 0]);
         event(new UserRegisterEvent($user->id));
 
         $user->refresh();
@@ -38,7 +35,7 @@ class UserRegisterEventTest extends TestCase
         config(['meedu.member.register.vip.role_id' => 1]);
         config(['meedu.member.register.vip.days' => 2]);
 
-        $user = factory(User::class)->create(['role_id' => 0]);
+        $user = User::factory()->create(['role_id' => 0]);
         event(new UserRegisterEvent($user->id));
 
         $user->refresh();

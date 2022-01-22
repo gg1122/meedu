@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Services\Order\Services;
@@ -48,7 +45,7 @@ class OrderService implements OrderServiceInterface
             // 优惠码抵扣
             $promoCodeDiscount = 0;
             $promoCode = PromoCode::find($promoCodeId);
-            if ($promoCode && $this->businessState->promoCodeCanUse($promoCode->toArray())) {
+            if ($promoCode && $this->businessState->promoCodeCanUse($userId, $promoCode->toArray())) {
                 $promoCodeDiscount = $promoCode['invited_user_reward'];
                 // 记录使用次数
                 $promoCode->increment('used_times', 1);
@@ -285,9 +282,11 @@ class OrderService implements OrderServiceInterface
         $query = Order::query()->whereUserId(Auth::id());
         $total = $query->count();
         $list = $query
-            ->with(['goods'])
+            ->with(['goods:id,oid,goods_id,goods_type,goods_name,goods_thumb,goods_charge,goods_ori_charge,num,charge'])
             ->latest()
-            ->forPage($page, $pageSize)->get()->toArray();
+            ->forPage($page, $pageSize)
+            ->get()
+            ->toArray();
 
         return compact('total', 'list');
     }

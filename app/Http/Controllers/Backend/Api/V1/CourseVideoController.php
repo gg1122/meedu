@@ -3,20 +3,18 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Backend\Api\V1;
 
 use Carbon\Carbon;
-use Overtrue\Pinyin\Pinyin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Events\VodVideoCreatedEvent;
 use App\Services\Member\Models\User;
 use App\Services\Course\Models\Video;
+use App\Events\VodVideoDestroyedEvent;
 use App\Services\Course\Models\Course;
 use App\Services\Member\Models\UserVideo;
 use App\Services\Course\Models\CourseChapter;
@@ -27,34 +25,41 @@ class CourseVideoController extends BaseController
 {
     public function index(Request $request)
     {
-        $id = $request->input('id');
-        $keywords = $request->input('keywords', '');
-        $courseId = $request->input('course_id');
+        $courseId = $request->input('cid');
+        $keywords = $request->input('keywords');
+
+        // 排序字段
         $sort = $request->input('sort', 'id');
         $order = $request->input('order', 'desc');
 
         $videos = Video::query()
-            ->with(['course', 'chapter'])
-            ->when($id, function ($query) use ($id) {
-                $query->where('id', $id);
-            })
-            ->when($keywords, function ($query) use ($keywords) {
-                return $query->where('title', 'like', "{$keywords}%");
-            })
+            ->select([
+                'id', 'user_id', 'course_id', 'title', 'slug', 'url', 'view_num', 'short_description',
+                'seo_keywords', 'seo_description', 'published_at', 'is_show', 'charge', 'aliyun_video_id',
+                'chapter_id', 'duration', 'tencent_video_id', 'is_ban_sell',
+                'free_seconds', 'ban_drag', 'created_at', 'updated_at',
+            ])
+            ->with([
+                'chapter:id,title', 'course:id,title,thumb,charge',
+            ])
             ->when($courseId, function ($query) use ($courseId) {
                 $query->where('course_id', $courseId);
             })
+            ->when($keywords, function ($query) use ($keywords) {
+                $query->where('title', 'like', '%' . $keywords . '%');
+            })
             ->orderBy($sort, $order)
-            ->paginate($request->input('size', 20));
+            ->paginate($request->input('size', 10));
 
-        $courses = Course::query()->select(['id', 'title'])->get();
-
-        return $this->successData(compact('videos', 'courses'));
+        return $this->successData(compact('videos'));
     }
 
     public function create()
     {
-        $courses = Course::select(['id', 'title'])->orderByDesc('published_at')->get();
+        $courses = Course::query()
+            ->select(['id', 'title', 'thumb', 'charge'])
+            ->orderByDesc('id')
+            ->get();
 
         return $this->successData(compact('courses'));
     }
@@ -63,37 +68,48 @@ class CourseVideoController extends BaseController
     {
         $video->fill($request->filldata())->save();
 
-        $this->hook($video->course_id);
+        event(new VodVideoCreatedEvent($video['id'], $video['title'], $video['charge'], '', '', ''));
 
         return $this->success();
     }
 
     public function edit($id)
     {
-        $video = Video::findOrFail($id);
+        $video = Video::query()->where('id', $id)->firstOrFail();
 
-        $courses = Course::all();
+        $courses = Course::query()
+            ->select(['id', 'title', 'thumb', 'charge'])
+            ->orderByDesc('id')
+            ->get();
 
         return $this->successData(compact('video', 'courses'));
     }
 
     public function update(CourseVideoRequest $request, $id)
     {
-        $video = Video::findOrFail($id);
+        $video = Video::query()->where('id', $id)->firstOrFail();
+
         $video->fill($request->filldata())->save();
 
-        $this->hook($video->course_id);
+        event(new VodVideoCreatedEvent($video['id'], $video['title'], $video['charge'], '', '', ''));
 
         return $this->success();
     }
 
     public function destroy($id)
     {
-        $video = Video::findOrFail($id);
-        $courseId = $video->course_id;
-        $video->delete();
+        $video = Video::query()->where('id', $id)->firstOrFail();
 
-        $this->hook($courseId);
+        DB::transaction(function () use ($video) {
+            // 清空用户的观看记录
+            UserVideoWatchRecord::query()->where('video_id', $video['id'])->delete();
+
+            $videoId = $video['id'];
+
+            $video->delete();
+
+            event(new VodVideoDestroyedEvent($videoId));
+        });
 
         return $this->success();
     }
@@ -108,12 +124,26 @@ class CourseVideoController extends BaseController
     public function multiDestroy(Request $request)
     {
         $ids = $request->input('ids');
-        $videos = Video::query()->whereIn('id', $ids)->get();
-        foreach ($videos as $video) {
-            $courseId = $video['course_id'];
-            $video->delete();
-            $this->hook($courseId);
-        }
+
+        DB::transaction(function () use ($ids) {
+            $videos = Video::query()
+                ->select([
+                    'id'
+                ])
+                ->whereIn('id', $ids)
+                ->get();
+
+            foreach ($videos as $video) {
+                $videoId = $video['id'];
+
+                // 清空用户观看记录
+                UserVideoWatchRecord::query()->where('video_id', $videoId)->delete();
+
+                $video->delete();
+
+                event(new VodVideoDestroyedEvent($videoId));
+            }
+        });
 
         return $this->success();
     }
@@ -150,20 +180,32 @@ class CourseVideoController extends BaseController
     public function subscribeCreate(Request $request, $videoId)
     {
         $userId = $request->input('user_id');
-        if (UserVideo::query()->where('user_id', $userId)->where('video_id', $videoId)->exists()) {
-            return $this->error('订阅关系已存在');
+        if (!$userId) {
+            return $this->error(__('参数错误'));
         }
 
-        if (!User::query()->where('id', $userId)->exists()) {
-            return $this->error('用户不存在');
+        if (!is_array($userId)) {
+            $userId = [$userId];
         }
 
-        UserVideo::create([
-            'user_id' => $userId,
-            'video_id' => $videoId,
-            'charge' => 0,
-            'created_at' => Carbon::now(),
-        ]);
+        $existsIds = UserVideo::query()
+            ->whereIn('user_id', $userId)
+            ->where('video_id', $videoId)
+            ->select(['user_id'])
+            ->get()
+            ->pluck('user_id')
+            ->toArray();
+
+        $userId = array_diff($userId, $existsIds);
+
+        foreach ($userId as $id) {
+            UserVideo::create([
+                'user_id' => $id,
+                'video_id' => $videoId,
+                'charge' => 0,
+                'created_at' => Carbon::now(),
+            ]);
+        }
 
         return $this->success();
     }
@@ -177,21 +219,14 @@ class CourseVideoController extends BaseController
 
     public function watchRecords(Request $request, $videoId)
     {
-        $userId = $request->input('user_id');
         $courseId = $request->input('course_id');
+        $userId = $request->input('user_id');
         $watchedStartAt = $request->input('watched_start_at');
         $watchedEndAt = $request->input('watched_end_at');
-        $export = $request->input('export');
 
         // 分页
         $page = (int)$request->input('page');
         $size = $request->input('size', 10);
-        if ($export) {
-            // 数据导出的话，默认第一页，默认最大导出10w条数据
-            // 如果导出数据记录超过最大值，则推荐使用数据路管理工具导出
-            $page = 1;
-            $size = 100000;
-        }
 
         $data = UserVideoWatchRecord::query()
             ->when($videoId, function ($query) use ($videoId) {
@@ -204,7 +239,7 @@ class CourseVideoController extends BaseController
                 $query->where('course_id', $courseId);
             })
             ->when($watchedStartAt && $watchedEndAt, function ($query) use ($watchedStartAt, $watchedEndAt) {
-                $query->whereBetween('watched_at', [$watchedStartAt, $watchedEndAt]);
+                $query->whereBetween('watched_at', [Carbon::parse($watchedStartAt), Carbon::parse($watchedEndAt)]);
             })
             ->orderByRaw('course_id,video_id,user_id desc')
             ->paginate($size, ['*'], 'page', $page);
@@ -229,41 +264,6 @@ class CourseVideoController extends BaseController
             ->get()
             ->keyBy('id');
 
-        // 数据导出
-        if ($export) {
-            $exportData = [
-                [
-                    '课程ID', '视频ID', '用户ID', '课程', '视频', '用户', '标签',
-                    '时长', '已观看', '开始时间', '看完时间', '看完',
-                ]
-            ];
-            foreach ($data->items() as $item) {
-                $tmpVideo = $videos[$item['video_id']] ?? null;
-
-                $tmpUser = $users[$item['user_id']] ?? null;
-                $tag = $tmpUser ? $tmpUser->tags->pluck('name')->implode(',') : '';
-
-                $exportData[] = [
-                    $item['course_id'],
-                    $item['video_id'],
-                    $item['user_id'],
-                    ($courses[$item['course_id']]['title'] ?? ''),
-                    $tmpVideo ? $tmpVideo['title'] : '',
-                    ($users[$item['user_id']]['nick_name'] ?? ''),
-                    $tag,
-                    ($tmpVideo ? $tmpVideo['duration'] : 0) . 's',
-                    $item['watch_seconds'] . 's',
-                    $item['created_at'],
-                    $item['watched_at'] ?: '',
-                    $item['watched_at'] ? '是' : '否',
-                ];
-            }
-
-            return $this->successData([
-                'data' => $exportData,
-            ]);
-        }
-
         return $this->successData([
             'courses' => $courses,
             'data' => $data,
@@ -276,24 +276,28 @@ class CourseVideoController extends BaseController
     {
         $data = $request->input('data');
         if (!$data) {
-            return $this->error('数据为空');
+            return $this->error(__('数据为空'));
         }
 
-        $courseNameArr = array_column($data, 0);
-        $courses = Course::query()->whereIn('title', $courseNameArr)->select(['id', 'title'])->get()->pluck('id', 'title');
+        $courseNameColumn = array_column($data, 0);
+        $courseNameColumn = array_map('trim', $courseNameColumn);
+        $courses = Course::query()->whereIn('title', $courseNameColumn)->select(['id', 'title'])->get()->pluck('id', 'title');
 
         $rows = [];
         $now = Carbon::now();
-        $py = new Pinyin();
+
         foreach ($data as $index => $item) {
+            // 行数[用户报错提示]
             $line = $index + 2;
-            $courseName = $item[0] ?? '';
-            if (!$courseName) {
-                return $this->error(sprintf('第%d行课程名为空', $line));
+
+            $courseName = trim($item[0] ?? '');
+            if ($courseName === '') {
+                continue;
             }
+
             $courseId = $courses[$courseName] ?? 0;
             if (!$courseId) {
-                return $this->error(sprintf('第%d行课程不存在', $line));
+                return $this->error(sprintf(__('第%d行课程不存在'), $line));
             }
 
             $chapterName = $item[1] ?? '';
@@ -306,9 +310,9 @@ class CourseVideoController extends BaseController
                 $chapterId = $chapter['id'];
             }
 
-            $videoName = $item[2] ?? '';
+            $videoName = trim($item[2] ?? '');
             if (!$videoName) {
-                return $this->error(sprintf('第%d视频名为空', $line));
+                return $this->error(sprintf(__('第%d视频名为空'), $line));
             }
 
             $duration = (int)($item[3] ?? 0);
@@ -332,7 +336,7 @@ class CourseVideoController extends BaseController
                 'course_id' => $courseId,
                 'chapter_id' => $chapterId,
                 'title' => $videoName,
-                'slug' => implode('-', $py->convert($videoName)),
+                'slug' => '',
                 'url' => $url,
                 'short_description' => '',
                 'seo_keywords' => $seoKeywords,

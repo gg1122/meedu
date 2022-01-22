@@ -3,13 +3,13 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Meedu\Tencent;
+
+use App\Services\Base\Services\ConfigService;
+use App\Services\Base\Interfaces\ConfigServiceInterface;
 
 class Vod
 {
@@ -18,8 +18,14 @@ class Vod
 
     public function __construct()
     {
-        $this->secretId = config('tencent.vod.secret_id');
-        $this->secretKey = config('tencent.vod.secret_key');
+        /**
+         * @var ConfigService $configService
+         */
+        $configService = app()->make(ConfigServiceInterface::class);
+        $config = $configService->getTencentVodConfig();
+
+        $this->secretId = $config['secret_id'];
+        $this->secretKey = $config['secret_key'];
     }
 
     /**

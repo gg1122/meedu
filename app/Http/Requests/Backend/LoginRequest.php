@@ -3,15 +3,10 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Requests\Backend;
-
-use App\Constant\BackendApiConstant;
 
 class LoginRequest extends BaseRequest
 {
@@ -41,8 +36,8 @@ class LoginRequest extends BaseRequest
     public function messages()
     {
         return [
-            'username.required' => BackendApiConstant::LOGIN_USERNAME_REQUIRED,
-            'password.required' => BackendApiConstant::LOGIN_PASSWORD_REQUIRED,
+            'username.required' => __('请输入邮箱'),
+            'password.required' => __('请输入密码'),
         ];
     }
 

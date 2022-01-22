@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Order;
@@ -34,7 +31,7 @@ class OrderServiceTest extends TestCase
      */
     protected $service;
 
-    public function setUp():void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = $this->app->make(OrderServiceInterface::class);
@@ -42,8 +39,8 @@ class OrderServiceTest extends TestCase
 
     public function test_createCourseOrder()
     {
-        $user = factory(User::class)->create();
-        $course = factory(Course::class)->create();
+        $user = User::factory()->create();
+        $course = Course::factory()->create();
 
         $order = $this->service->createCourseOrder($user->id, $course->toArray(), 0);
         $this->assertNotEmpty($order);
@@ -51,21 +48,22 @@ class OrderServiceTest extends TestCase
 
     public function test_createCourseOrder_with_promoCode()
     {
-        $user = factory(User::class)->create();
-        $course = factory(Course::class)->create();
-        $promoCode = factory(PromoCode::class)->create([
+        $user = User::factory()->create();
+        $course = Course::factory()->create();
+        $promoCode = PromoCode::factory()->create([
+            'user_id' => 0,
             'invited_user_reward' => 10,
             'used_times' => 0,
         ]);
 
-        $order = $this->service->createCourseOrder($user->id, $course->toArray(), 0, $promoCode->id);
+        $order = $this->service->createCourseOrder($user['id'], $course->toArray(), $promoCode['id']);
         $this->assertNotEmpty($order);
     }
 
     public function test_createVideoOrder()
     {
-        $user = factory(User::class)->create();
-        $video = factory(Video::class)->create();
+        $user = User::factory()->create();
+        $video = Video::factory()->create();
 
         $order = $this->service->createVideoOrder($user->id, $video->toArray(), 0);
         $this->assertNotEmpty($order);
@@ -73,34 +71,35 @@ class OrderServiceTest extends TestCase
 
     public function test_createVideoOrder_with_PromoCode()
     {
-        $user = factory(User::class)->create();
-        $video = factory(Video::class)->create();
-        $promoCode = factory(PromoCode::class)->create([
+        $user = User::factory()->create();
+        $video = Video::factory()->create();
+        $promoCode = PromoCode::factory()->create([
             'invited_user_reward' => 10,
             'used_times' => 0,
         ]);
 
-        $order = $this->service->createVideoOrder($user->id, $video->toArray(), 0, $promoCode->id);
+        $order = $this->service->createVideoOrder($user->id, $video->toArray(), $promoCode->id);
         $this->assertNotEmpty($order);
     }
 
     public function test_createRoleOrder()
     {
-        $user = factory(User::class)->create();
-        $role = factory(Role::class)->create();
-        $promoCode = factory(PromoCode::class)->create([
+        $user = User::factory()->create();
+        $role = Role::factory()->create();
+
+        $promoCode = PromoCode::factory()->create([
             'invited_user_reward' => 10,
             'used_times' => 0,
         ]);
 
-        $order = $this->service->createRoleOrder($user->id, $role->toArray(), 0, $promoCode['id']);
+        $order = $this->service->createRoleOrder($user->id, $role->toArray(), $promoCode['id']);
         $this->assertNotEmpty($order);
     }
 
     public function test_createRoleOrder_with_promoCode()
     {
-        $user = factory(User::class)->create();
-        $role = factory(Role::class)->create();
+        $user = User::factory()->create();
+        $role = Role::factory()->create();
 
         $order = $this->service->createRoleOrder($user->id, $role->toArray(), 0);
         $this->assertNotEmpty($order);
@@ -111,10 +110,10 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ModelNotFoundException::class);
 
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
-        $order1 = factory(Order::class)->create([
+        $order1 = Order::factory()->create([
             'status' => Order::STATUS_CANCELED,
         ]);
 
@@ -126,14 +125,14 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ModelNotFoundException::class);
 
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
         Auth::login($user);
 
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
             'user_id' => $user->id,
         ]);
-        $order1 = factory(Order::class)->create([
+        $order1 = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -143,7 +142,7 @@ class OrderServiceTest extends TestCase
 
     public function test_find()
     {
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -154,14 +153,14 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ModelNotFoundException::class);
 
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
         Auth::login($user);
 
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
             'user_id' => $user->id,
         ]);
-        $order1 = factory(Order::class)->create([
+        $order1 = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -171,7 +170,7 @@ class OrderServiceTest extends TestCase
 
     public function test_findId()
     {
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -183,12 +182,12 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ModelNotFoundException::class);
 
-        $user = factory(User::class)->create();
-        $order = factory(Order::class)->create([
+        $user = User::factory()->create();
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
             'user_id' => $user->id,
         ]);
-        $order1 = factory(Order::class)->create([
+        $order1 = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -200,7 +199,7 @@ class OrderServiceTest extends TestCase
 
     public function test_change2Paying()
     {
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -213,7 +212,7 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ServiceException::class);
 
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_PAYING,
         ]);
 
@@ -222,7 +221,7 @@ class OrderServiceTest extends TestCase
 
     public function test_cancel()
     {
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_UNPAY,
         ]);
 
@@ -235,7 +234,7 @@ class OrderServiceTest extends TestCase
     {
         $this->expectException(ServiceException::class);
 
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_PAID,
         ]);
 
@@ -244,10 +243,10 @@ class OrderServiceTest extends TestCase
 
     public function test_userOrdersPaginate()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
         Auth::login($user);
 
-        $orders = factory(Order::class, 10)->create([
+        $orders = Order::factory()->count(10)->create([
             'user_id' => $user->id,
         ]);
 
@@ -259,7 +258,7 @@ class OrderServiceTest extends TestCase
 
     public function test_changePaid()
     {
-        $order = factory(Order::class)->create([
+        $order = Order::factory()->create([
             'status' => Order::STATUS_PAYING,
         ]);
 
@@ -270,8 +269,8 @@ class OrderServiceTest extends TestCase
 
     public function test_getOrderProducts()
     {
-        $order = factory(Order::class)->create();
-        $orderGoods = factory(OrderGoods::class, 11)->create([
+        $order = Order::factory()->create();
+        $orderGoods = OrderGoods::factory()->count(11)->create([
             'oid' => $order->id,
             'user_id' => 1,
         ]);
@@ -283,9 +282,9 @@ class OrderServiceTest extends TestCase
 
     public function test_getTimeoutOrders()
     {
-        factory(Order::class)->create(['status' => Order::STATUS_PAYING]);
-        factory(Order::class)->create(['status' => Order::STATUS_PAID]);
-        factory(Order::class)->create(['status' => Order::STATUS_UNPAY]);
+        Order::factory()->create(['status' => Order::STATUS_PAYING]);
+        Order::factory()->create(['status' => Order::STATUS_PAID]);
+        Order::factory()->create(['status' => Order::STATUS_UNPAY]);
 
         $list = $this->service->getTimeoutOrders(Carbon::now()->addDays(10));
 

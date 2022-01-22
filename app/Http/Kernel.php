@@ -3,22 +3,14 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http;
 
-use Fruitcake\Cors\HandleCors;
 use App\Http\Middleware\GlobalShareMiddleware;
-use App\Http\Middleware\WechatLoginMiddleware;
-use App\Http\Middleware\CheckSmsCodeMiddleware;
-use App\Http\Middleware\PromoCodeSaveMiddleware;
-use App\Http\Middleware\LoginStatusCheckMiddleware;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
-use App\Http\Middleware\BackendPermissionCheckMiddleware;
+use App\Http\Middleware\Backend\BackendPermissionCheckMiddleware;
 
 class Kernel extends HttpKernel
 {
@@ -45,12 +37,13 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
-        \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
+        // \App\Http\Middleware\TrustHosts::class,
+        \App\Http\Middleware\TrustProxies::class,
+        \Fruitcake\Cors\HandleCors::class,
+        \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
 //        \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \App\Http\Middleware\TrustProxies::class,
-        HandleCors::class,
     ];
 
     /**
@@ -67,7 +60,6 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            PromoCodeSaveMiddleware::class,
         ],
 
         'api' => [
@@ -90,18 +82,14 @@ class Kernel extends HttpKernel
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
+        'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
 
         // global变量共享
         'global.share' => GlobalShareMiddleware::class,
-        // 短信验证
-        'sms.check' => CheckSmsCodeMiddleware::class,
         // 后台权限
         'backend.permission' => BackendPermissionCheckMiddleware::class,
-        // 登录状态检测
-        'login.status.check' => LoginStatusCheckMiddleware::class,
         // api接口的状态登录检测
         'api.login.status.check' => \App\Http\Middleware\Api\LoginStatusCheckMiddleware::class,
-        // 微信公众号授权登录[微信浏览器里]
-        'wechat.login' => WechatLoginMiddleware::class,
     ];
 }

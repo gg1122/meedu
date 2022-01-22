@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Member;
@@ -33,7 +30,7 @@ class CreditServiceTest extends TestCase
 
     public function test_createCredit1Record()
     {
-        $user = factory(User::class)->create(['credit1' => 1]);
+        $user = User::factory()->create(['credit1' => 1]);
         $this->service->createCredit1Record($user->id, 100, 'meedu123');
 
         $record = UserCreditRecord::query()->where('user_id', $user->id)->where('field', 'credit1')->first();
@@ -47,7 +44,7 @@ class CreditServiceTest extends TestCase
 
     public function test_getCredit1RecordsPaginate()
     {
-        $user = factory(User::class)->create(['credit1' => 1]);
+        $user = User::factory()->create(['credit1' => 1]);
         UserCreditRecord::create([
             'user_id' => $user->id,
             'field' => 'credit1',
@@ -72,7 +69,7 @@ class CreditServiceTest extends TestCase
 
     public function test_getCredit1RecordsCount()
     {
-        $user = factory(User::class)->create(['credit1' => 1]);
+        $user = User::factory()->create(['credit1' => 1]);
         UserCreditRecord::create([
             'user_id' => $user->id,
             'field' => 'credit1',

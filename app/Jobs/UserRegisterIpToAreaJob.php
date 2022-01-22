@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Jobs;
@@ -51,12 +48,13 @@ class UserRegisterIpToAreaJob implements ShouldQueue
             $userService = app()->make(UserServiceInterface::class);
             $user = $userService->find($this->userId);
             if (!$user['register_ip']) {
-                Log::info(__METHOD__ . '|用户注册ip为空', ['id' => $this->userId]);
+                Log::info(__METHOD__ . '|ip_empty', ['id' => $this->userId]);
                 return;
             }
 
             $area = Ip::ip2area($user['register_ip']);
             if (!$area) {
+                Log::info(__METHOD__ . '|无法将ip转换为area');
                 return;
             }
 

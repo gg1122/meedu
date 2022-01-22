@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Exceptions;
@@ -20,7 +17,7 @@ class SystemException extends \Exception
     public function render()
     {
         if (request()->wantsJson()) {
-            return $this->error(__('error'));
+            return $this->error(__('错误'));
         }
         abort(500, $this->getMessage());
     }

@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Backend\Api\V1;
@@ -79,6 +76,8 @@ class AddonsController extends BaseController
             config('meedu.meeducloud.user_id'),
             config('meedu.meeducloud.password')
         );
+
+        $addonsData = [];
 
         try {
             $addons = $mc->addons($request->input('page'), $request->input('size'));

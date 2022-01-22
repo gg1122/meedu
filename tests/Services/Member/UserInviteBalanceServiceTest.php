@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Member;
@@ -37,7 +34,7 @@ class UserInviteBalanceServiceTest extends TestCase
 
     public function test_createInvite()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
         $this->service->createInvite($user->id, 10);
 
         $r = UserInviteBalanceRecord::whereUserId($user->id)->first();
@@ -48,8 +45,8 @@ class UserInviteBalanceServiceTest extends TestCase
 
     public function test_createOrderDraw()
     {
-        $user = factory(User::class)->create();
-        $order = factory(Order::class)->create([
+        $user = User::factory()->create();
+        $order = Order::factory()->create([
             'user_id' => $user->id,
             'charge' => 100,
         ]);
@@ -65,7 +62,7 @@ class UserInviteBalanceServiceTest extends TestCase
     {
         $this->expectException(ServiceException::class);
 
-        $user = factory(User::class)->create([
+        $user = User::factory()->create([
             'invite_balance' => 0,
         ]);
         Auth::login($user);
@@ -80,7 +77,7 @@ class UserInviteBalanceServiceTest extends TestCase
 
     public function test_createCurrentUserWithdraw_with_sufficient()
     {
-        $user = factory(User::class)->create([
+        $user = User::factory()->create([
             'invite_balance' => 100,
         ]);
         Auth::login($user);

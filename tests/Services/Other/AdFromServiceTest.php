@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Other;
@@ -26,7 +23,7 @@ class AdFromServiceTest extends TestCase
      */
     protected $service;
 
-    public function setUp():void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = $this->app->make(AdFromServiceInterface::class);
@@ -34,21 +31,21 @@ class AdFromServiceTest extends TestCase
 
     public function test_all()
     {
-        factory(AdFrom::class, 9)->create();
+        AdFrom::factory()->count(9)->create();
         $all = $this->service->all();
         $this->assertEquals(9, count($all));
     }
 
     public function test_getDay()
     {
-        $number = factory(AdFromNumber::class)->create();
+        $number = AdFromNumber::factory()->create();
         $day = $this->service->getDay($number->from_id, $number->day);
         $this->assertNotEmpty($day);
     }
 
     public function test_updateDay()
     {
-        $number = factory(AdFromNumber::class)->create();
+        $number = AdFromNumber::factory()->create();
         $num = $number->num + 5;
         $this->service->updateDay($number->id, [
             'num' => $number->num + 5,
@@ -59,7 +56,7 @@ class AdFromServiceTest extends TestCase
 
     public function test_createDay()
     {
-        $from = factory(AdFrom::class)->create();
+        $from = AdFrom::factory()->create();
         $date = Carbon::now()->format('Y-m-d');
         $num = random_int(1, 1000);
         $this->service->createDay($from->id, $date, $num);
@@ -67,5 +64,11 @@ class AdFromServiceTest extends TestCase
         $number = $this->service->getDay($from->id, $date);
 
         $this->assertEquals($num, $number['num']);
+    }
+
+    public function test_findFromKey()
+    {
+        $result = $this->service->findFromKey('123');
+        $this->assertEmpty($result);
     }
 }

@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Services\Member\Services;
@@ -51,9 +48,11 @@ class RoleService implements RoleServiceInterface
      */
     public function userRolePaginate(int $page, int $pageSize): array
     {
-        $query = UserJoinRoleRecord::with(['user', 'role'])
-            ->whereUserId(Auth::id())
+        $query = UserJoinRoleRecord::query()
+            ->with(['user:id,nick_name,avatar,mobile', 'role:id,name'])
+            ->where('user_id', Auth::id())
             ->orderByDesc('created_at');
+
         $total = $query->count();
         $list = $query->forPage($page, $pageSize)->get()->toArray();
 

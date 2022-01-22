@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Providers;
@@ -31,6 +28,9 @@ class RouteServiceProvider extends ServiceProvider
     public function boot()
     {
         parent::boot();
+
+        // 路由中出现{id}的必须为整数
+        Route::pattern('id', '\d+');
     }
 
     /**
@@ -39,6 +39,7 @@ class RouteServiceProvider extends ServiceProvider
     public function map()
     {
         $this->mapApiV2Routes();
+        $this->mapApiV3Routes();
         $this->mapApiRoutes();
         $this->mapWebRoutes();
         $this->mapBackendApiRoutes();
@@ -52,7 +53,7 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapWebRoutes()
     {
         Route::middleware(['web', 'global.share'])
-            ->namespace($this->namespace)
+            ->namespace('App\Http\Controllers\Frontend')
             ->group(base_path('routes/web.php'));
     }
 
@@ -62,6 +63,14 @@ class RouteServiceProvider extends ServiceProvider
             ->middleware('api')
             ->namespace($this->namespace . '\Api\V2')
             ->group(base_path('routes/apiv2.php'));
+    }
+
+    protected function mapApiV3Routes()
+    {
+        Route::prefix('/api/v3')
+            ->middleware('api')
+            ->namespace($this->namespace . '\Api\V3')
+            ->group(base_path('routes/apiv3.php'));
     }
 
     protected function mapApiRoutes()

@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Requests\Backend;
@@ -44,8 +41,8 @@ class PromoCodeRequest extends BaseRequest
     public function messages()
     {
         return [
-            'code.required' => '请输入code',
-            'code.unique' => 'code已存在',
+            'code.required' => __('请输入优惠码'),
+            'code.unique' => __('优惠码已存在'),
         ];
     }
 

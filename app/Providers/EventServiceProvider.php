@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Providers;
@@ -15,11 +12,6 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 
 class EventServiceProvider extends ServiceProvider
 {
-    /**
-     * The event listener mappings for the application.
-     *
-     * @var array
-     */
     protected $listen = [
         'App\Events\PaymentSuccessEvent' => [
             '\App\Listeners\PaymentSuccessEvent\OrderPaidDeliverListener',
@@ -34,16 +26,7 @@ class EventServiceProvider extends ServiceProvider
             '\App\Listeners\OrderCancelEvent\InviteBalanceResumeListener',
         ],
         \SocialiteProviders\Manager\SocialiteWasCalled::class => [
-            'SocialiteProviders\\WeixinWeb\\WeixinWebExtendSocialite@handle',
             'SocialiteProviders\\QQ\\QqExtendSocialite@handle',
-        ],
-        'App\Events\CourseCommentEvent' => [
-            'App\Listeners\CourseCommentEvent\NotifyOwnerListener',
-            'App\Listeners\CourseCommentEvent\AtEventListener',
-        ],
-        'App\Events\VideoCommentEvent' => [
-            'App\Listeners\VideoCommentEvent\NotifyOwnerListener',
-            'App\Listeners\VideoCommentEvent\AtEventListener',
         ],
         'App\Events\UserRegisterEvent' => [
             'App\Listeners\UserRegisterEvent\WelcomeMessageListener',
@@ -53,9 +36,6 @@ class EventServiceProvider extends ServiceProvider
         ],
         'App\Events\UserLoginEvent' => [
             'App\Listeners\UserLoginEvent\LoginRecordListener',
-        ],
-        'App\Events\UserInviteBalanceWithdrawCreatedEvent' => [
-            'App\Listeners\UserInviteBalanceWithdrawCreatedEvent\NotifyListener',
         ],
         'App\Events\UserInviteBalanceWithdrawHandledEvent' => [
             'App\Listeners\UserInviteBalanceWithdrawHandledEvent\NotifyListener',
@@ -70,13 +50,25 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\UserCourseWatchedEvent\UserCourseWatchedCredit1RewardListener',
         ],
         'App\Events\AppConfigSavedEvent' => [],
+        // 录播课程的增改删
+        'App\Events\VodCourseCreatedEvent' => [
+            'App\Listeners\VodCourseCreatedEvent\SearchRecordNotify',
+        ],
+        'App\Events\VodCourseUpdatedEvent' => [
+            'App\Listeners\VodCourseUpdatedEvent\SearchRecordNotify',
+        ],
+        'App\Events\VodCourseDestroyedEvent' => [
+            'App\Listeners\VodCourseDestroyedEvent\SearchRecordNotify',
+        ],
+        // 录播视频的增改删
+        'App\Events\VodVideoCreatedEvent' => [
+            'App\Listeners\VodVideoCreatedEvent\SearchRecordNotify',
+        ],
+        'App\Events\VodVideoUpdatedEvent' => [
+            'App\Listeners\VodVideoUpdatedEvent\SearchRecordNotify',
+        ],
+        'App\Events\VodVideoDestroyedEvent' => [
+            'App\Listeners\VodVideoDestroyedEvent\SearchRecordNotify',
+        ],
     ];
-
-    /**
-     * Register any events for your application.
-     */
-    public function boot()
-    {
-        parent::boot();
-    }
 }

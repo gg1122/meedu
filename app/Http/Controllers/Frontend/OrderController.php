@@ -3,146 +3,84 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Meedu\Wechat;
 use Illuminate\Http\Request;
-use App\Constant\CacheConstant;
-use App\Businesses\BusinessState;
-use App\Exceptions\SystemException;
-use App\Exceptions\ServiceException;
-use App\Http\Controllers\Controller;
-use App\Services\Base\Services\CacheService;
-use App\Services\Base\Services\ConfigService;
+use App\Meedu\Payment\Wechat\WechatJSAPI;
 use App\Services\Order\Services\OrderService;
-use App\Services\Base\Interfaces\CacheServiceInterface;
-use App\Services\Base\Interfaces\ConfigServiceInterface;
 use App\Services\Order\Interfaces\OrderServiceInterface;
 
-class OrderController extends Controller
+class OrderController extends FrontendController
 {
     /**
      * @var OrderService
      */
     protected $orderService;
-    /**
-     * @var ConfigService
-     */
-    protected $configService;
-    protected $businessState;
-    /**
-     * @var CacheService
-     */
-    protected $cacheService;
 
-    public function __construct(
-        OrderServiceInterface $orderService,
-        ConfigServiceInterface $configService,
-        BusinessState $businessState,
-        CacheServiceInterface $cacheService
-    ) {
+    public function __construct(OrderServiceInterface $orderService)
+    {
+        parent::__construct();
+
         $this->orderService = $orderService;
-        $this->configService = $configService;
-        $this->businessState = $businessState;
-        $this->cacheService = $cacheService;
     }
 
-    /**
-     * @param Request $request
-     * @return mixed
-     * @throws ServiceException
-     * @throws SystemException
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
-     */
-    public function pay(Request $request)
+    public function wechatJSAPI(Request $request)
     {
-        $orderId = $request->input('order_id');
-        $order = $this->orderService->findUserNoPaid($orderId);
+        // 跳转地址
+        $sUrl = $request->input('s_url');
+        $fUrl = $request->input('f_url');
+        $data = $request->input('data');
 
-        $scene = $request->input('scene');
-        $payment = $request->input('payment');
-        if (!$payment) {
-            throw new ServiceException(__('payment not exists'));
-        }
-        $payments = get_payments($scene);
-        $paymentMethod = $payments[$payment][$scene] ?? '';
-        if (!$paymentMethod) {
-            throw new SystemException(__('payment method not exists'));
-        }
+        $openid = session('wechat_jsapi_openid');
+        if (!$openid) {
+            // 微信授权登录回调后
+            if ($request->has('oauth')) {
+                $user = Wechat::getInstance()->oauth->user();
+                $openid = $user->getId();
+                // 存储到session中
+                session(['wechat_jsapi_openid' => $openid]);
+            }
 
-        // 更新订单的支付方式
-        $updateData = [
-            'payment' => $payment,
-            'payment_method' => $paymentMethod,
-        ];
-        $this->orderService->change2Paying($order['id'], $updateData);
-        $order = array_merge($order, $updateData);
-
-        // 创建远程订单
-        $paymentHandler = app()->make($payments[$payment]['handler']);
-        $createResult = $paymentHandler->create($order);
-        if ($createResult->status === false) {
-            throw new SystemException(__('remote order create failed'));
+            // 微信授权登录获取openid
+            $redirect = url_append_query(
+                route('order.pay.wechat.jsapi'),
+                [
+                    'oauth' => 1,
+                    'data' => $data,
+                    's_url' => urlencode($sUrl),
+                    'f_url' => urlencode($fUrl),
+                ]
+            );
+            return Wechat::getInstance()->oauth->redirect($redirect);
         }
 
-        return $createResult->data;
-    }
-
-    /**
-     * @param Request $request
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function success(Request $request)
-    {
-        $orderId = $request->input('out_trade_no', '');
-        $order = $this->orderService->findUser($orderId);
-
-        return v('frontend.order.success', compact('order'));
-    }
-
-    /**
-     * @param $orderId
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|\Illuminate\View\View
-     * @throws \App\Exceptions\ServiceException
-     */
-    public function wechat($orderId)
-    {
-        $order = $this->orderService->findUser($orderId);
-        $needPaidTotal = $this->businessState->calculateOrderNeedPaidSum($order);
-
-        $wechatData = $this->cacheService->get(get_cache_key(CacheConstant::WECHAT_PAY_SCAN_RETURN_DATA['name'], $order['order_id']));
-        if (!$wechatData) {
-            $this->orderService->cancel($order['id']);
-            flash(__('error'));
-
-            return redirect('/');
+        try {
+            // 解密数据
+            $decryptData = decrypt($data);
+            // 获取orderId
+            $orderId = $decryptData['order_id'];
+        } catch (\Exception $e) {
+            abort(500, __('参数错误'));
         }
 
-        $qrcodeUrl = $wechatData['code_url'];
+        // 订单
+        $order = $this->orderService->findOrFail($orderId);
 
-        $title = __('wechat.pay.page.title');
+        /**
+         * @var WechatJSAPI $jsapi
+         */
+        $jsapi = app()->make(WechatJSAPI::class);
 
-        return v('frontend.order.wechat', compact('qrcodeUrl', 'order', 'needPaidTotal', 'title'));
-    }
+        // 创建微信支付订单
+        $data = $jsapi->createDirect($order, $openid);
 
-    /**
-     * @param $orderId
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function handPay($orderId)
-    {
-        $order = $this->orderService->findUser($orderId);
-        $needPaidTotal = $this->businessState->calculateOrderNeedPaidSum($order);
-        $intro = $this->configService->getHandPayIntroducation();
+        // 页面标题
+        $title = __('微信支付');
 
-        $title = __('hand.pay.page.title');
-
-        return v('frontend.order.hand_pay', compact('order', 'intro', 'needPaidTotal', 'title'));
+        return v('h5.order.wechat-jsapi-pay', compact('order', 'title', 'data'));
     }
 }

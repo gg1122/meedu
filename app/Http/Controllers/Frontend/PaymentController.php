@@ -3,29 +3,13 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Frontend;
 
-use App\Services\Base\Services\ConfigService;
-use App\Services\Base\Interfaces\ConfigServiceInterface;
-
 class PaymentController extends FrontendController
 {
-    /**
-     * @var ConfigService
-     */
-    protected $configService;
-
-    public function __construct(ConfigServiceInterface $configService)
-    {
-        $this->configService = $configService;
-    }
-
     /**
      * @param $payment
      * @return mixed

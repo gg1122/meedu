@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Services\Other;
@@ -29,7 +26,7 @@ class LinkServiceTest extends TestCase
     {
         config(['meedu.system.cache.status' => 1]);
 
-        $link = factory(Link::class)->create([
+        $link = Link::factory()->create([
             'sort' => 1,
         ]);
 
@@ -40,7 +37,7 @@ class LinkServiceTest extends TestCase
         $this->assertEquals($link->name, $links[0]['name']);
         $this->assertEquals($link->url, $links[0]['url']);
 
-        $link1 = factory(Link::class)->create([
+        $link1 = Link::factory()->create([
             'sort' => 2,
         ]);
         $links = $this->service->all();
@@ -53,7 +50,7 @@ class LinkServiceTest extends TestCase
     {
         config(['meedu.system.cache.status' => 0]);
 
-        $link = factory(Link::class)->create([
+        $link = Link::factory()->create([
             'sort' => 1,
         ]);
 
@@ -64,7 +61,7 @@ class LinkServiceTest extends TestCase
         $this->assertEquals($link->name, $links[0]['name']);
         $this->assertEquals($link->url, $links[0]['url']);
 
-        $link1 = factory(Link::class)->create([
+        $link1 = Link::factory()->create([
             'sort' => 2,
         ]);
         $links = $this->service->all();

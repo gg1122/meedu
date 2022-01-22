@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace Tests\Feature\Api\V2;
@@ -28,7 +25,7 @@ class VideoTest extends Base
 {
     public function test_videos()
     {
-        factory(Video::class, 10)->create([
+        Video::factory()->count(10)->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
@@ -39,11 +36,11 @@ class VideoTest extends Base
 
     public function test_video_id()
     {
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'course_id' => $course->id,
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
@@ -54,13 +51,13 @@ class VideoTest extends Base
 
     public function test_video_detail_free_watch()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'course_id' => $course->id,
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
@@ -74,13 +71,13 @@ class VideoTest extends Base
 
     public function test_video_detail_paid()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'course_id' => $course->id,
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
@@ -96,13 +93,13 @@ class VideoTest extends Base
 
     public function test_video_detail_course_paid()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'course_id' => $course->id,
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
@@ -118,13 +115,13 @@ class VideoTest extends Base
 
     public function test_video_detail_un_paid()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $course = factory(Course::class)->create([
+        $course = Course::factory()->create([
             'is_show' => Course::SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'course_id' => $course->id,
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
@@ -139,91 +136,69 @@ class VideoTest extends Base
     public function test_video_id_with_no_id()
     {
         $r = $this->getJson('api/v2/video/' . random_int(0, 1000));
-        $this->assertResponseError($r, __('error'));
+        $this->assertResponseError($r, __('错误'));
     }
 
     public function test_video_id_no_show()
     {
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_NO,
             'published_at' => Carbon::now()->subDays(1),
         ]);
         $r = $this->getJson('api/v2/video/' . $video->id);
-        $this->assertResponseError($r, __('error'));
+        $this->assertResponseError($r, __('错误'));
     }
 
     public function test_video_id_no_published()
     {
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->addDays(1),
         ]);
         $r = $this->getJson('api/v2/video/' . $video->id);
-        $this->assertResponseError($r, __('error'));
-    }
-
-    public function test_video_comment()
-    {
-        $user = factory(User::class)->create();
-
-        $video = factory(Video::class)->create([
-            'is_show' => Video::IS_SHOW_YES,
-            'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ALL,
-        ]);
-        $r = $this->user($user)->postJson('api/v2/video/' . $video->id . '/comment', [
-            'content' => 'hello meedu',
-        ]);
-        $r = $this->assertResponseSuccess($r);
-
-        $comment = VideoComment::whereUserId($user->id)->whereVideoId($video->id)->first();
-        $this->assertNotEmpty($comment);
-        $this->assertEquals('hello meedu', $comment->original_content);
+        $this->assertResponseError($r, __('错误'));
     }
 
     public function test_video_comment_close()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_CLOSE,
         ]);
         $response = $this->user($user)->postJson('api/v2/video/' . $video->id . '/comment', [
             'content' => 'hello meedu',
         ]);
-        $this->assertResponseError($response, __('video cant comment'));
+        $this->assertResponseError($response, __('视频无法评论'));
     }
 
     public function test_video_comment_only_paid()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ONLY_PAID,
         ]);
         $r = $this->user($user)->postJson('api/v2/video/' . $video->id . '/comment', [
             'content' => 'hello meedu',
         ]);
-        $this->assertResponseError($r, __('video cant comment'));
+        $this->assertResponseError($r, __('视频无法评论'));
     }
 
     public function test_video_comment_only_paid_for_vip()
     {
-        $user = factory(User::class)->create();
-        $role = factory(Role::class)->create();
+        $user = User::factory()->create();
+        $role = Role::factory()->create();
         $user->role_id = $role->id;
         $user->role_expired_at = Carbon::now()->addDays(1);
         $user->save();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'charge' => 1,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ONLY_PAID,
         ]);
         $r = $this->user($user)->postJson('api/v2/video/' . $video->id . '/comment', [
             'content' => 'hello meedu',
@@ -233,13 +208,12 @@ class VideoTest extends Base
 
     public function test_video_comment_only_paid_for_buy()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'charge' => 1,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ONLY_PAID,
         ]);
 
         UserVideo::create([
@@ -255,13 +229,12 @@ class VideoTest extends Base
 
     public function test_video_comment_only_paid_for_free()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'charge' => 0,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ONLY_PAID,
         ]);
 
         $r = $this->user($user)->postJson('api/v2/video/' . $video->id . '/comment', [
@@ -272,13 +245,12 @@ class VideoTest extends Base
 
     public function test_video_comment_only_paid_for_buy_course()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'charge' => 0,
             'published_at' => Carbon::now()->subDays(1),
-            'comment_status' => Video::COMMENT_STATUS_ONLY_PAID,
         ]);
 
         UserCourse::create(['course_id' => $video->course_id, 'user_id' => $user->id]);
@@ -291,11 +263,11 @@ class VideoTest extends Base
 
     public function test_video_comments()
     {
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
         ]);
-        factory(VideoComment::class, 12)->create([
+        VideoComment::factory()->count(12)->create([
             'video_id' => $video->id,
         ]);
         $r = $this->getJson('api/v2/video/' . $video->id . '/comments');
@@ -305,9 +277,9 @@ class VideoTest extends Base
 
     public function test_video_record()
     {
-        $user = factory(User::class)->create();
+        $user = User::factory()->create();
 
-        $video = factory(Video::class)->create([
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'duration' => 100,
@@ -341,8 +313,8 @@ class VideoTest extends Base
 
     public function test_video_record_after_user_watch_stat()
     {
-        $user = factory(User::class)->create();
-        $video = factory(Video::class)->create([
+        $user = User::factory()->create();
+        $video = Video::factory()->create([
             'is_show' => Video::IS_SHOW_YES,
             'published_at' => Carbon::now()->subDays(1),
             'duration' => 100,

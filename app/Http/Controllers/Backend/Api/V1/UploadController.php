@@ -3,10 +3,7 @@
 /*
  * This file is part of the Qsnh/meedu.
  *
- * (c) XiaoTeng <616896861@qq.com>
- *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * (c) 杭州白书科技有限公司
  */
 
 namespace App\Http\Controllers\Backend\Api\V1;
@@ -21,10 +18,5 @@ class UploadController extends BaseController
         $data = save_image($file);
 
         return ['location' => $data['url'], 'path' => $data['path']];
-    }
-
-    public function imageUpload()
-    {
-        return $this->error('function offline');
     }
 }
